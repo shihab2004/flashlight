@@ -107,51 +107,112 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final label = _isOn ? 'Turn Off' : 'Turn On';
     final statusText = _isAvailable
         ? (_isOn ? 'Flashlight is ON' : 'Flashlight is OFF')
         : 'Flashlight not available';
+
+    final background = Color.lerp(
+      cs.surface,
+      cs.primary.withOpacity(0.10),
+      _isOn ? 1 : 0,
+    )!;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Flashlight'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                statusText,
-                style: Theme.of(context).textTheme.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              if (_error != null) ...[
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  textAlign: TextAlign.center,
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        color: background,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: _isOn ? 1 : 0),
+                  duration: const Duration(milliseconds: 450),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, t, child) {
+                    final ringColor = Color.lerp(
+                      cs.surfaceContainerHighest,
+                      cs.primary.withOpacity(0.22),
+                      t,
+                    )!;
+
+                    return AnimatedScale(
+                      duration: const Duration(milliseconds: 350),
+                      curve: Curves.easeOutCubic,
+                      scale: _isOn ? 1.0 : 0.95,
+                      child: Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: ringColor,
+                        ),
+                        alignment: Alignment.center,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          child: Icon(
+                            _isOn ? Icons.flashlight_on : Icons.flashlight_off,
+                            key: ValueKey(_isOn),
+                            size: 72,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: Text(
+                    statusText,
+                    key: ValueKey(statusText),
+                    style: Theme.of(context).textTheme.titleLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (_error != null) ...[
+                  Text(
+                    _error!,
+                    style: TextStyle(color: cs.error),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 240,
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: (_isBusy || !_isAvailable) ? null : _toggle,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      child: _isBusy
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(label, key: ValueKey(label)),
+                    ),
+                  ),
+                ),
               ],
-              SizedBox(
-                width: 220,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: (_isBusy || !_isAvailable) ? null : _toggle,
-                  child: _isBusy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(label),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
