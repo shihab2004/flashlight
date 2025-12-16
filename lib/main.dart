@@ -12,7 +12,7 @@ class FlashlightApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flashlight',
+      title: 'Flashlight LED',
       themeMode: ThemeMode.dark,
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -121,7 +121,7 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Flashlight'),
+        title: const Text('Flashlight LED'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: AnimatedContainer(
