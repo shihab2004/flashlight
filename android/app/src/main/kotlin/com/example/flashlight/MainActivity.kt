@@ -1,4 +1,4 @@
-package com.example.flashlight
+package com.flashlight.ledt
 
 import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
