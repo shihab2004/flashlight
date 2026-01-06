@@ -149,23 +149,39 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
                       duration: const Duration(milliseconds: 350),
                       curve: Curves.easeOutCubic,
                       scale: _isOn ? 1.0 : 0.95,
-                      child: Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: ringColor,
-                        ),
-                        alignment: Alignment.center,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          switchInCurve: Curves.easeOut,
-                          switchOutCurve: Curves.easeIn,
-                          child: Icon(
-                            _isOn ? Icons.flashlight_on : Icons.flashlight_off,
-                            key: ValueKey(_isOn),
-                            size: 72,
-                            color: cs.onSurface,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: (_isBusy || !_isAvailable) ? null : _toggle,
+                          customBorder: const CircleBorder(),
+                          child: Semantics(
+                            button: true,
+                            enabled: !_isBusy && _isAvailable,
+                            label: _isOn
+                                ? 'Turn flashlight off'
+                                : 'Turn flashlight on',
+                            child: Container(
+                              width: 160,
+                              height: 160,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: ringColor,
+                              ),
+                              alignment: Alignment.center,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 250),
+                                switchInCurve: Curves.easeOut,
+                                switchOutCurve: Curves.easeIn,
+                                child: Icon(
+                                  _isOn
+                                      ? Icons.flashlight_on
+                                      : Icons.flashlight_off,
+                                  key: ValueKey(_isOn),
+                                  size: 72,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
