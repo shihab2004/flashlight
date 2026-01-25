@@ -2,6 +2,19 @@
 
 A new Flutter project.
 
+## Release builds (smaller + smoother)
+
+- Smaller APKs (one per CPU architecture):
+	- `flutter build apk --release --split-per-abi`
+- Recommended for store releases (Google Play will split per device automatically):
+	- `flutter build appbundle --release`
+
+Extra size hardening (optional, but common in production):
+
+- Obfuscate Dart code (keeps stack traces via split debug info):
+	- `flutter build apk --release --obfuscate --split-debug-info=build/symbols`
+	- `flutter build appbundle --release --obfuscate --split-debug-info=build/symbols`
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

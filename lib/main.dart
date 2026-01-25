@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'flashlight_channel.dart';
 
@@ -13,12 +14,12 @@ class FlashlightApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flashlight LED',
-      themeMode: ThemeMode.dark,
-      darkTheme: ThemeData(
+      themeMode: ThemeMode.light,
+      theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.amber,
-          brightness: Brightness.dark,
+          brightness: Brightness.light,
         ),
       ),
       home: const FlashlightHomePage(),
@@ -39,69 +40,92 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
   bool _isBusy = false;
   String? _error;
 
+  late final Future<String> _versionText;
+
   @override
   void initState() {
     super.initState();
+    _versionText = _loadVersionText();
     _init();
   }
 
+  Future<String> _loadVersionText() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final build = info.buildNumber.trim();
+      if (build.isEmpty) {
+        return 'Version: ${info.version}';
+      }
+      return 'Version: ${info.version}';
+    } catch (_) {
+      return '';
+    }
+  }
+
   Future<void> _init() async {
+    if (!mounted) return;
     setState(() {
       _isBusy = true;
       _error = null;
     });
 
+    bool? available;
+    Object? error;
     try {
-      final available = await FlashlightChannel.isTorchAvailable();
-      if (!mounted) return;
-      setState(() {
-        _isAvailable = available;
-      });
+      available = await FlashlightChannel.isTorchAvailable();
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isBusy = false;
-      });
+      error = e;
     }
+
+    if (!mounted) return;
+    setState(() {
+      _isBusy = false;
+      if (available != null) {
+        _isAvailable = available!;
+      }
+      if (error != null) {
+        _error = error.toString();
+      }
+    });
   }
 
   Future<void> _toggle() async {
     if (_isBusy || !_isAvailable) return;
 
     final next = !_isOn;
+    if (!mounted) return;
     setState(() {
       _isBusy = true;
       _error = null;
     });
 
+    Object? error;
+    bool didSwitch = false;
     try {
       await FlashlightChannel.setTorch(next);
-      if (!mounted) return;
-      setState(() {
-        _isOn = next;
-      });
+      didSwitch = true;
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isBusy = false;
-      });
+      error = e;
     }
+
+    if (!mounted) return;
+    setState(() {
+      _isBusy = false;
+      if (didSwitch) {
+        _isOn = next;
+      }
+      if (error != null) {
+        _error = error.toString();
+      }
+    });
   }
 
   @override
   void dispose() {
     // Best-effort: turn off torch when leaving.
-    FlashlightChannel.setTorch(false);
+    if (_isOn) {
+      FlashlightChannel.setTorch(false);
+    }
     super.dispose();
   }
 
@@ -122,7 +146,8 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Flashlight LED'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: cs.primaryContainer,
+        foregroundColor: cs.onPrimaryContainer,
       ),
       body: AnimatedContainer(
         duration: const Duration(milliseconds: 350),
@@ -226,6 +251,22 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
                           : Text(label, key: ValueKey(label)),
                     ),
                   ),
+                ),
+
+                const SizedBox(height: 18),
+                FutureBuilder<String>(
+                  future: _versionText,
+                  builder: (context, snapshot) {
+                    final text = snapshot.data?.trim() ?? '';
+                    if (text.isEmpty) return const SizedBox.shrink();
+
+                    return Text(
+                      text,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                    );
+                  },
                 ),
               ],
             ),
