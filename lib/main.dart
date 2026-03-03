@@ -14,14 +14,26 @@ class FlashlightApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final darkScheme =
+        ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ).copyWith(
+          secondary: Colors.amber.shade400,
+          tertiary: Colors.amber.shade400,
+        );
+
     return MaterialApp(
       title: 'Flashlight LED',
-      themeMode: ThemeMode.light,
-      theme: ThemeData(
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.amber,
-          brightness: Brightness.light,
+        colorScheme: darkScheme,
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: darkScheme.secondary,
+            foregroundColor: darkScheme.onSecondary,
+          ),
         ),
       ),
       home: const FlashlightHomePage(),
@@ -191,11 +203,11 @@ class _FlashlightHomePageState extends State<FlashlightHomePage>
                   builder: (context, t, child) {
                     final ringColor = Color.lerp(
                       cs.surfaceContainerHighest,
-                      cs.primary.withOpacity(0.22),
+                      cs.secondary.withOpacity(0.22),
                       t,
                     )!;
 
-                    final glowColor = cs.primary.withOpacity(0.28 * t);
+                    final glowColor = cs.secondary.withOpacity(0.28 * t);
 
                     return AnimatedScale(
                       duration: const Duration(milliseconds: 350),
@@ -207,13 +219,14 @@ class _FlashlightHomePageState extends State<FlashlightHomePage>
                           _LightWaves(
                             visible: _isOn,
                             progress: _waves,
-                            color: cs.primary,
+                            color: cs.secondary,
                           ),
                           Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap:
-                                  (_isBusy || !_isAvailable) ? null : _toggle,
+                              onTap: (_isBusy || !_isAvailable)
+                                  ? null
+                                  : _toggle,
                               customBorder: const CircleBorder(),
                               child: Semantics(
                                 button: true,
@@ -238,8 +251,7 @@ class _FlashlightHomePageState extends State<FlashlightHomePage>
                                   ),
                                   alignment: Alignment.center,
                                   child: AnimatedSwitcher(
-                                    duration:
-                                        const Duration(milliseconds: 250),
+                                    duration: const Duration(milliseconds: 250),
                                     switchInCurve: Curves.easeOut,
                                     switchOutCurve: Curves.easeIn,
                                     child: Icon(
@@ -310,8 +322,8 @@ class _FlashlightHomePageState extends State<FlashlightHomePage>
                     return Text(
                       text,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
+                        color: cs.onSurfaceVariant,
+                      ),
                     );
                   },
                 ),
@@ -394,13 +406,7 @@ class _LightWavesPainter extends CustomPainter {
 
       final rect = Rect.fromCircle(center: c, radius: radius);
       // Right side arc (like ")")
-      canvas.drawArc(
-        rect,
-        -0.45 * math.pi,
-        0.90 * math.pi,
-        false,
-        paint,
-      );
+      canvas.drawArc(rect, -0.45 * math.pi, 0.90 * math.pi, false, paint);
       // Left side arc (like "(")
       canvas.drawArc(
         rect,
