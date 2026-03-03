@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -34,19 +36,39 @@ class FlashlightHomePage extends StatefulWidget {
   State<FlashlightHomePage> createState() => _FlashlightHomePageState();
 }
 
-class _FlashlightHomePageState extends State<FlashlightHomePage> {
+class _FlashlightHomePageState extends State<FlashlightHomePage>
+    with SingleTickerProviderStateMixin {
   bool _isOn = false;
   bool _isAvailable = false;
   bool _isBusy = false;
   String? _error;
+
+  late final AnimationController _waves;
 
   late final Future<String> _versionText;
 
   @override
   void initState() {
     super.initState();
+    _waves = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
     _versionText = _loadVersionText();
     _init();
+  }
+
+  void _syncWaves() {
+    if (_isOn) {
+      if (!_waves.isAnimating) {
+        _waves.repeat();
+      }
+    } else {
+      if (_waves.isAnimating) {
+        _waves.stop();
+      }
+      _waves.value = 0;
+    }
   }
 
   Future<String> _loadVersionText() async {
@@ -113,6 +135,7 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
       _isBusy = false;
       if (didSwitch) {
         _isOn = next;
+        _syncWaves();
       }
       if (error != null) {
         _error = error.toString();
@@ -126,6 +149,8 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
     if (_isOn) {
       FlashlightChannel.setTorch(false);
     }
+
+    _waves.dispose();
     super.dispose();
   }
 
@@ -170,45 +195,67 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
                       t,
                     )!;
 
+                    final glowColor = cs.primary.withOpacity(0.28 * t);
+
                     return AnimatedScale(
                       duration: const Duration(milliseconds: 350),
                       curve: Curves.easeOutCubic,
                       scale: _isOn ? 1.0 : 0.95,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: (_isBusy || !_isAvailable) ? null : _toggle,
-                          customBorder: const CircleBorder(),
-                          child: Semantics(
-                            button: true,
-                            enabled: !_isBusy && _isAvailable,
-                            label: _isOn
-                                ? 'Turn flashlight off'
-                                : 'Turn flashlight on',
-                            child: Container(
-                              width: 160,
-                              height: 160,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: ringColor,
-                              ),
-                              alignment: Alignment.center,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 250),
-                                switchInCurve: Curves.easeOut,
-                                switchOutCurve: Curves.easeIn,
-                                child: Icon(
-                                  _isOn
-                                      ? Icons.flashlight_on
-                                      : Icons.flashlight_off,
-                                  key: ValueKey(_isOn),
-                                  size: 72,
-                                  color: cs.onSurface,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          _LightWaves(
+                            visible: _isOn,
+                            progress: _waves,
+                            color: cs.primary,
+                          ),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap:
+                                  (_isBusy || !_isAvailable) ? null : _toggle,
+                              customBorder: const CircleBorder(),
+                              child: Semantics(
+                                button: true,
+                                enabled: !_isBusy && _isAvailable,
+                                label: _isOn
+                                    ? 'Turn flashlight off'
+                                    : 'Turn flashlight on',
+                                child: Container(
+                                  width: 160,
+                                  height: 160,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: ringColor,
+                                    boxShadow: [
+                                      if (t > 0)
+                                        BoxShadow(
+                                          color: glowColor,
+                                          blurRadius: 34 * t,
+                                          spreadRadius: 2 * t,
+                                        ),
+                                    ],
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: AnimatedSwitcher(
+                                    duration:
+                                        const Duration(milliseconds: 250),
+                                    switchInCurve: Curves.easeOut,
+                                    switchOutCurve: Curves.easeIn,
+                                    child: Icon(
+                                      _isOn
+                                          ? Icons.flashlight_on
+                                          : Icons.flashlight_off,
+                                      key: ValueKey(_isOn),
+                                      size: 72,
+                                      color: cs.onSurface,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     );
                   },
@@ -274,5 +321,99 @@ class _FlashlightHomePageState extends State<FlashlightHomePage> {
         ),
       ),
     );
+  }
+}
+
+class _LightWaves extends StatelessWidget {
+  const _LightWaves({
+    required this.visible,
+    required this.progress,
+    required this.color,
+  });
+
+  final bool visible;
+  final Animation<double> progress;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        child: AnimatedScale(
+          scale: visible ? 1 : 0.98,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          child: AnimatedBuilder(
+            animation: progress,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _LightWavesPainter(
+                  progress: progress.value,
+                  color: color,
+                ),
+                child: const SizedBox(width: 210, height: 210),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LightWavesPainter extends CustomPainter {
+  _LightWavesPainter({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final shortest = size.shortestSide;
+    final baseRadius = shortest * 0.34;
+    final maxExtra = shortest * 0.14;
+    const waveCount = 3;
+
+    for (var i = 0; i < waveCount; i++) {
+      final phase = i / waveCount;
+      var t = progress - phase;
+      if (t < 0) t += 1;
+
+      // t: 0..1 (moving outward). Fade out as it expands.
+      final fade = (1 - t).clamp(0.0, 1.0);
+      final radius = baseRadius + (maxExtra * t);
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 3.0 + (2.0 * fade)
+        ..color = color.withOpacity(0.35 * fade);
+
+      final rect = Rect.fromCircle(center: c, radius: radius);
+      // Right side arc (like ")")
+      canvas.drawArc(
+        rect,
+        -0.45 * math.pi,
+        0.90 * math.pi,
+        false,
+        paint,
+      );
+      // Left side arc (like "(")
+      canvas.drawArc(
+        rect,
+        (math.pi - 0.45 * math.pi),
+        0.90 * math.pi,
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LightWavesPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }
